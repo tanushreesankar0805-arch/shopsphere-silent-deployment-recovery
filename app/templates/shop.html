@@ -1,0 +1,178 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ShopSphere | Tech Store</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,sans-serif;background:#f6f7fb;color:#172033}
+header{background:#fff;padding:20px 7%;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 12px #0000000a}
+.logo{font-size:26px;font-weight:800;color:#5b43d6}
+nav{color:#64748b;font-size:14px}
+.hero{padding:60px 7%;background:linear-gradient(120deg,#21184e,#6550c9);color:white}
+.hero h1{font-size:44px;margin:0 0 12px}
+.hero p{color:#e0dcff;font-size:17px}
+main{padding:35px 7%;max-width:1400px;margin:auto}
+h2{font-size:25px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:22px}
+.card{background:white;border-radius:18px;padding:20px;box-shadow:0 5px 25px #0000000b}
+.product-img{height:170px;background:#f0edff;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:80px}
+.card h3{margin-bottom:8px}
+.price{font-size:23px;font-weight:800;color:#4f39b8}
+button{border:0;background:#5b43d6;color:white;padding:13px 18px;border-radius:9px;cursor:pointer;font-weight:bold}
+button:hover{background:#4530ad}
+.card button{width:100%;margin-top:12px}
+.cart{margin-top:35px;background:white;border-radius:18px;padding:28px;box-shadow:0 5px 25px #0000000b}
+.cart-row{display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid #eee}
+input{padding:12px;border:1px solid #cbd5e1;border-radius:8px;width:130px}
+.checkout{margin-top:20px}
+.message{margin-top:18px;padding:18px;border-radius:10px;display:none;font-weight:bold}
+.success{background:#dcfce7;color:#166534}
+.error{background:#fee2e2;color:#991b1b}
+footer{text-align:center;padding:30px;color:#64748b}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">ShopSphere.</div>
+  <nav>Home &nbsp;&nbsp; Products &nbsp;&nbsp; 🛒 Cart <span id="count">0</span></nav>
+</header>
+
+<section class="hero">
+  <h1>Upgrade Your Everyday Tech.</h1>
+  <p>Discover premium gadgets at prices you'll love.</p>
+  <button onclick="document.getElementById('products').scrollIntoView({behavior:'smooth'})">Shop Now</button>
+</section>
+
+<main>
+<h2 id="products">Featured Products</h2>
+
+<div class="grid">
+  <div class="card">
+    <div class="product-img">🎧</div>
+    <h3>Wireless Headphones</h3>
+    <p>Immersive sound for everyday listening.</p>
+    <div class="price">₹1,500</div>
+    <button onclick="addToCart('headphones',1500)">Add to Cart</button>
+  </div>
+
+  <div class="card">
+    <div class="product-img">⌨️</div>
+    <h3>Mechanical Keyboard</h3>
+    <p>Precision typing with a premium feel.</p>
+    <div class="price">₹2,000</div>
+    <button onclick="addToCart('keyboard',2000)">Add to Cart</button>
+  </div>
+
+  <div class="card">
+    <div class="product-img">🖱️</div>
+    <h3>Wireless Mouse</h3>
+    <p>Comfortable control and smooth performance.</p>
+    <div class="price">₹800</div>
+    <button onclick="addToCart('mouse',800)">Add to Cart</button>
+  </div>
+</div>
+
+<div class="cart" id="cart">
+  <h2>🛒 Your Shopping Cart</h2>
+  <div id="cart-items">Your cart is empty.</div>
+  <p><strong>Discount (%)</strong></p>
+  <input id="discount" type="number" value="10" min="0" max="100">
+  <p><strong>Total: ₹<span id="total">0</span></strong></p>
+  <button class="checkout" onclick="checkout()">Proceed to Checkout</button>
+  <div id="message" class="message"></div>
+</div>
+</main>
+
+<footer>© 2026 ShopSphere · Demo E-Commerce Store</footer>
+
+<script>
+let cart = [];
+
+function addToCart(product, price) {
+  cart.push({product,price});
+  document.getElementById("count").textContent = cart.length;
+  renderCart();
+  document.getElementById("cart").scrollIntoView({behavior:"smooth"});
+}
+
+function renderCart() {
+  const container = document.getElementById("cart-items");
+  container.innerHTML = cart.length
+    ? cart.map(item =>
+        `<div class="cart-row"><span>${item.product}</span><strong>₹${item.price}</strong></div>`
+      ).join("")
+    : "Your cart is empty.";
+
+  document.getElementById("total").textContent =
+    cart.reduce((sum,item)=>sum+item.price,0);
+}
+
+async function checkout() {
+  const message = document.getElementById("message");
+  message.style.display = "block";
+  message.className = "message";
+  message.textContent = "Processing your order...";
+
+  if (!cart.length) {
+    message.className = "message error";
+    message.textContent = "Please add a product to your cart.";
+    return;
+  }
+
+  const discount = Number(document.getElementById("discount").value);
+
+  if (!Number.isFinite(discount) || discount < 0 || discount > 100) {
+    message.className = "message error";
+    message.textContent = "Enter a discount between 0 and 100.";
+    return;
+  }
+
+  // The existing backend processes one product per checkout.
+  // Submit each cart item as a separate transaction.
+  try {
+    const results = [];
+
+    for (const item of cart) {
+      const response = await fetch("/checkout", {
+        method: "POST",
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({
+          product: item.product,
+          discount: discount
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || data.status !== "success") {
+        throw new Error(data.message || data.error || "Checkout failed");
+      }
+
+      results.push(data);
+    }
+
+    const total = results.reduce(
+      (sum,item)=>sum+item.final_price,0
+    );
+
+    message.className = "message success";
+    message.textContent =
+      "✓ Order placed successfully! Total paid: ₹" + total.toFixed(2);
+
+    cart = [];
+    document.getElementById("count").textContent = 0;
+    renderCart();
+
+  } catch (error) {
+    message.className = "message error";
+    message.textContent =
+      "✕ Checkout failed. We're unable to process your order. Please try again.";
+  }
+}
+</script>
+</body>
+</html>

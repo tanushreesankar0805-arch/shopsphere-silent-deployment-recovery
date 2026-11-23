@@ -1,0 +1,16 @@
+
+global:
+  scrape_interval: 5s
+
+scrape_configs:
+  - job_name: shopsphere
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - shopsphere-v1:5000
+          - shopsphere-v2:5000
+  - job_name: recovery-controller
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - recovery-controller:9100

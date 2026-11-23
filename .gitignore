@@ -1,0 +1,19 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+id_rsa
+id_ed25519
+incidents/*.jsonl
+.vscode/
+.DS_Store
+
+# Development backups
+*_backup.py
+*_before_*.py

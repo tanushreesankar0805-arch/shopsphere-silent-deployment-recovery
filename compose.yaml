@@ -1,0 +1,67 @@
+
+services:
+  shopsphere-v1:
+    build: .
+    image: shopsphere:local
+    environment:
+      APP_VERSION: v1
+    ports:
+      - "127.0.0.1:5001:5000"
+    restart: unless-stopped
+
+  shopsphere-v2:
+    image: shopsphere:local
+    environment:
+      APP_VERSION: v2
+    ports:
+      - "127.0.0.1:5002:5000"
+    restart: unless-stopped
+
+  shopsphere-router:
+    build: .
+    image: shopsphere:local
+    command: python /app/router.py
+    ports:
+      - "127.0.0.1:8080:8080"
+    depends_on:
+      - shopsphere-v1
+      - shopsphere-v2
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "127.0.0.1:9091:9090"
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "127.0.0.1:3001:3000"
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+  recovery-controller:
+    build: .
+    image: shopsphere:local
+    command: python /app/controller.py
+    environment:
+      ROUTER_URL: http://shopsphere-router:8080
+      CHECK_INTERVAL: "5"
+      SAMPLE_SIZE: "10"
+      FAILURE_THRESHOLD: "0.10"
+      CONSECUTIVE_FAILURES: "2"
+      BASELINE_MAX_FAILURE: "0.10"
+      INCIDENT_FILE: /app/incidents/history.jsonl
+    volumes:
+      - ./incidents:/app/incidents
+    ports:
+      - "127.0.0.1:9100:9100"
+    depends_on:
+      - shopsphere-v1
+      - shopsphere-v2
+      - shopsphere-router
+    restart: unless-stopped
